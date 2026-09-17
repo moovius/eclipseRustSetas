@@ -3,54 +3,192 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rust Mushroom Leaderboard</title>
+  <!-- Fuente moderna e iconos -->
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;600;800&display=swap"
+    rel="stylesheet">
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: #ffffff;
-      background-color: rgba(0, 0, 0, 0.75);
-      /* Fondo semitransparente para OBS */
-      padding: 15px;
-      border-radius: 10px;
-      width: 320px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    * {
+      box-sizing: border-box;
       margin: 0;
+      padding: 0;
     }
 
-    h3 {
-      margin: 0 0 10px 0;
-      font-size: 15px;
-      color: #ffcc00;
-      text-align: center;
+    body {
+      font-family: 'Inter', sans-serif;
+      background: transparent;
+      /* Transparente para OBS */
+      display: flex;
+      justify-content: flex-start;
+      align-items: flex-start;
+      padding: 20px;
+      color: #ffffff;
+    }
+
+    /* Contenedor principal con Glassmorphism */
+    .glass-card {
+      width: 340px;
+      background: rgba(18, 20, 29, 0.55);
+      /* Fondo oscuro semitransparente */
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.125);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Resplandor sutil superior */
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255, 180, 0, 0.8), transparent);
+    }
+
+    /* Cabecera del Widget */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      color: #ffb703;
+      text-shadow: 0 0 10px rgba(255, 183, 3, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .live-badge {
+      font-size: 10px;
+      font-weight: 800;
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      padding: 2px 6px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Filas de la clasificación */
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .player-row {
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      margin: 6px 0;
-      font-size: 14px;
-      font-weight: bold;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      transition: all 0.3s ease;
     }
 
-    .my-stats {
-      margin-top: 12px;
-      border-top: 1px solid rgba(255, 255, 255, 0.3);
-      padding-top: 10px;
-      font-size: 14px;
-      font-weight: bold;
-      color: #00ffcc;
+    .player-info {
       display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .rank {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      width: 22px;
+      text-align: center;
+    }
+
+    .score {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    /* Medallas y resaltados */
+    .rank-1 {
+      color: #ffd700;
+    }
+
+    .rank-2 {
+      color: #c0c0c0;
+    }
+
+    .rank-3 {
+      color: #cd7f32;
+    }
+
+    /* Estilo especial para tus estadísticas */
+    .my-stats-card {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: linear-gradient(135deg, rgba(0, 180, 216, 0.15), rgba(114, 9, 183, 0.15));
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
       justify-content: space-between;
+      box-shadow: 0 0 15px rgba(0, 180, 216, 0.15);
+    }
+
+    .my-stats-card .player-name {
+      color: #00f5d4;
+      font-weight: 800;
+    }
+
+    .my-stats-card .score {
+      background: rgba(0, 245, 212, 0.15);
+      color: #00f5d4;
+      border: 1px solid rgba(0, 245, 212, 0.3);
     }
   </style>
 </head>
 
 <body>
-  <div id="widget">
-    <h3>🏆 Top Setas - Eclipse</h3>
-    <div id="top3">Cargando datos...</div>
-    <div class="my-stats" id="mystats">Buscando a DiLANZiTO...</div>
+
+  <div class="glass-card">
+    <div class="header">
+      <div class="title">🍄 Top Recolectores</div>
+      <div class="live-badge">En Vivo</div>
+    </div>
+
+    <div class="leaderboard-list" id="top3">
+      <div class="player-row"><span style="font-size: 12px; opacity: 0.6;">Sincronizando datos...</span></div>
+    </div>
+
+    <div class="my-stats-card" id="mystats">
+      <div class="player-info">
+        <span class="rank" style="color: #00f5d4;">#--</span>
+        <span class="player-name">DiLANZiTO</span>
+      </div>
+      <div class="score">0</div>
+    </div>
   </div>
 
   <script>
@@ -59,49 +197,67 @@
 
     async function actualizarDatos () {
       try {
-        // Añadimos timestamp para evitar datos en caché
         const urlConCache = API_TARGET + "&_=" + new Date().getTime();
-
-        // Pasamos la URL a través del proxy AllOrigins
         const proxyUrl = `https://api.allorigins.win/get?url=${ encodeURIComponent( urlConCache ) }`;
 
         let response = await fetch( proxyUrl );
         if ( !response.ok ) throw new Error( "Error en la respuesta del proxy" );
 
         let result = await response.json();
-
-        // AllOrigins devuelve la respuesta del servidor en formato String dentro de 'contents'
         let data = JSON.parse( result.contents );
         let jugadores = Array.isArray( data ) ? data : ( data.data || data.players || [] );
 
-        // 1. Ordenar jugadores por mushrooms_collected de mayor a menor
+        // Ordenar jugadores por mushrooms_collected
         jugadores.sort( ( a, b ) => ( parseInt( b.mushrooms_collected ) || 0 ) - ( parseInt( a.mushrooms_collected ) || 0 ) );
 
-        // 2. Renderizar el Top 3
+        // Renderizar Top 3
         let top3Html = "";
         let medallas = [ "🥇", "🥈", "🥉" ];
+        let rankClasses = [ "rank-1", "rank-2", "rank-3" ];
+
         for ( let i = 0; i < Math.min( 3, jugadores.length ); i++ ) {
           let p = jugadores[ i ];
-          let setas = p.mushrooms_collected || 0;
-          top3Html += `<div class="player-row"><span>${ medallas[ i ] } ${ p.name }</span> <span>${ setas.toLocaleString() } setas</span></div>`;
+          let setas = parseInt( p.mushrooms_collected ) || 0;
+
+          top3Html += `
+                        <div class="player-row">
+                            <div class="player-info">
+                                <span class="rank ${ rankClasses[ i ] }">${ medallas[ i ] }</span>
+                                <span>${ p.name }</span>
+                            </div>
+                            <div class="score">${ setas.toLocaleString() }</div>
+                        </div>
+                    `;
         }
         document.getElementById( "top3" ).innerHTML = top3Html;
 
-        // 3. Buscar la posición global de DiLANZiTO
+        // Buscar la posición global de DiLANZiTO
         let miIndex = jugadores.findIndex( p => p.name && p.name.toLowerCase() === NICKNAME.toLowerCase() );
         if ( miIndex !== -1 ) {
           let miP = jugadores[ miIndex ];
-          let misSetas = miP.mushrooms_collected || 0;
-          document.getElementById( "mystats" ).innerHTML = `<span>👤 #${ miIndex + 1 } ${ miP.name }</span> <span>${ misSetas.toLocaleString() } setas</span>`;
+          let misSetas = parseInt( miP.mushrooms_collected ) || 0;
+
+          document.getElementById( "mystats" ).innerHTML = `
+                        <div class="player-info">
+                            <span class="rank" style="color: #00f5d4;">#${ miIndex + 1 }</span>
+                            <span class="player-name">${ miP.name }</span>
+                        </div>
+                        <div class="score">${ misSetas.toLocaleString() } setas</div>
+                    `;
         } else {
-          document.getElementById( "mystats" ).innerHTML = `<span>👤 ${ NICKNAME }</span> <span>Sin registros</span>`;
+          document.getElementById( "mystats" ).innerHTML = `
+                        <div class="player-info">
+                            <span class="rank" style="color: #00f5d4;">#-</span>
+                            <span class="player-name">${ NICKNAME }</span>
+                        </div>
+                        <div class="score">Sin registros</div>
+                    `;
         }
       } catch ( e ) {
         console.log( "Error al sincronizar datos:", e );
       }
     }
 
-    // Ejecución inicial y temporizador cada 20 segundos
     actualizarDatos();
     setInterval( actualizarDatos, 20000 );
   </script>
