@@ -195,43 +195,22 @@
     const NICKNAME = "DiLANZiTO";
     const API_TARGET = "https://eclipse.latampowerrust.com/stats/data.php?server=1";
 
-    async function pedirDatosConFallback ( urlTarget ) {
-      const urlConCache = urlTarget + "&_=" + new Date().getTime();
-      const encodedUrl = encodeURIComponent( urlConCache );
-
-      // Intento 1: AllOrigins
-      try {
-        let res = await fetch( `https://api.allorigins.win/get?url=${ encodedUrl }` );
-        if ( res.ok ) {
-          let json = await res.json();
-          return JSON.parse( json.contents );
-        }
-      } catch ( e ) {
-        console.warn( "AllOrigins falló, reintentando con proxy secundario..." );
-      }
-
-      // Intento 2: Corsproxy.io (Respaldo)
-      try {
-        let res = await fetch( `https://corsproxy.io/?${ encodedUrl }` );
-        if ( res.ok ) {
-          return await res.json();
-        }
-      } catch ( e ) {
-        console.error( "Ambos proxies fallaron:", e );
-      }
-
-      throw new Error( "No se pudo conectar a la API mediante ningún proxy" );
-    }
-
     async function actualizarDatos () {
       try {
-        let data = await pedirDatosConFallback( API_TARGET );
+        const urlConCache = API_TARGET + "&_=" + new Date().getTime();
+        const proxyUrl = `https://api.allorigins.win/get?url=${ encodeURIComponent( urlConCache ) }`;
+
+        let response = await fetch( proxyUrl );
+        if ( !response.ok ) throw new Error( "Error en la respuesta del proxy" );
+
+        let result = await response.json();
+        let data = JSON.parse( result.contents );
         let jugadores = Array.isArray( data ) ? data : ( data.data || data.players || [] );
 
-        // 1. Ordenar jugadores por mushrooms_collected
+        // Ordenar jugadores por mushrooms_collected
         jugadores.sort( ( a, b ) => ( parseInt( b.mushrooms_collected ) || 0 ) - ( parseInt( a.mushrooms_collected ) || 0 ) );
 
-        // 2. Renderizar Top 3
+        // Renderizar Top 3
         let top3Html = "";
         let medallas = [ "🥇", "🥈", "🥉" ];
         let rankClasses = [ "rank-1", "rank-2", "rank-3" ];
@@ -241,38 +220,38 @@
           let setas = parseInt( p.mushrooms_collected ) || 0;
 
           top3Html += `
-                <div class="player-row">
-                    <div class="player-info">
-                        <span class="rank ${ rankClasses[ i ] }">${ medallas[ i ] }</span>
-                        <span>${ p.name }</span>
-                    </div>
-                    <div class="score">${ setas.toLocaleString() }</div>
-                </div>
-            `;
+                        <div class="player-row">
+                            <div class="player-info">
+                                <span class="rank ${ rankClasses[ i ] }">${ medallas[ i ] }</span>
+                                <span>${ p.name }</span>
+                            </div>
+                            <div class="score">${ setas.toLocaleString() }</div>
+                        </div>
+                    `;
         }
         document.getElementById( "top3" ).innerHTML = top3Html;
 
-        // 3. Buscar posición de DiLANZiTO
+        // Buscar la posición global de DiLANZiTO
         let miIndex = jugadores.findIndex( p => p.name && p.name.toLowerCase() === NICKNAME.toLowerCase() );
         if ( miIndex !== -1 ) {
           let miP = jugadores[ miIndex ];
           let misSetas = parseInt( miP.mushrooms_collected ) || 0;
 
           document.getElementById( "mystats" ).innerHTML = `
-                <div class="player-info">
-                    <span class="rank" style="color: #00f5d4;">#${ miIndex + 1 }</span>
-                    <span class="player-name">${ miP.name }</span>
-                </div>
-                <div class="score">${ misSetas.toLocaleString() } setas</div>
-            `;
+                        <div class="player-info">
+                            <span class="rank" style="color: #00f5d4;">#${ miIndex + 1 }</span>
+                            <span class="player-name">${ miP.name }</span>
+                        </div>
+                        <div class="score">${ misSetas.toLocaleString() } setas</div>
+                    `;
         } else {
           document.getElementById( "mystats" ).innerHTML = `
-                <div class="player-info">
-                    <span class="rank" style="color: #00f5d4;">#-</span>
-                    <span class="player-name">${ NICKNAME }</span>
-                </div>
-                <div class="score">Sin registros</div>
-            `;
+                        <div class="player-info">
+                            <span class="rank" style="color: #00f5d4;">#-</span>
+                            <span class="player-name">${ NICKNAME }</span>
+                        </div>
+                        <div class="score">Sin registros</div>
+                    `;
         }
       } catch ( e ) {
         console.log( "Error al sincronizar datos:", e );
@@ -280,7 +259,7 @@
     }
 
     actualizarDatos();
-    setInterval( actualizarDatos, 30000 ); // Subido a 30s para no saturar los proxies
+    setInterval( actualizarDatos, 30000 );
   </script>
 </body>
 
