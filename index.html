@@ -55,43 +55,54 @@
 
   <script>
     const NICKNAME = "DiLANZiTO";
-    const API_URL = "https://eclipse.latampowerrust.com/stats/data.php?server=1";
-    //const API_URL = "https://corsproxy.io/?" + encodeURIComponent( "https://eclipse.latampowerrust.com/stats/data.php?server=1" );
+    const API_TARGET = "https://eclipse.latampowerrust.com/stats/data.php?server=1";
 
     async function actualizarDatos () {
       try {
-        // Añadimos timestamp para evitar caché
-        let response = await fetch( API_URL + "&_=" + new Date().getTime() );
-        let data = await response.json();
+        // Añadimos timestamp para evitar datos en caché
+        const urlConCache = API_TARGET + "&_=" + new Date().getTime();
+
+        // Pasamos la URL a través del proxy AllOrigins
+        const proxyUrl = `https://api.allorigins.win/get?url=${ encodeURIComponent( urlConCache ) }`;
+
+        let response = await fetch( proxyUrl );
+        if ( !response.ok ) throw new Error( "Error en la respuesta del proxy" );
+
+        let result = await response.json();
+
+        // AllOrigins devuelve la respuesta del servidor en formato String dentro de 'contents'
+        let data = JSON.parse( result.contents );
         let jugadores = Array.isArray( data ) ? data : ( data.data || data.players || [] );
 
-        // Ordenar por mushrooms_collected de mayor a menor
+        // 1. Ordenar jugadores por mushrooms_collected de mayor a menor
         jugadores.sort( ( a, b ) => ( parseInt( b.mushrooms_collected ) || 0 ) - ( parseInt( a.mushrooms_collected ) || 0 ) );
 
-        // Renderizar Top 3
+        // 2. Renderizar el Top 3
         let top3Html = "";
         let medallas = [ "🥇", "🥈", "🥉" ];
         for ( let i = 0; i < Math.min( 3, jugadores.length ); i++ ) {
           let p = jugadores[ i ];
-          top3Html += `<div class="player-row"><span>${ medallas[ i ] } ${ p.name }</span> <span>${ p.mushrooms_collected } setas</span></div>`;
+          let setas = p.mushrooms_collected || 0;
+          top3Html += `<div class="player-row"><span>${ medallas[ i ] } ${ p.name }</span> <span>${ setas.toLocaleString() } setas</span></div>`;
         }
         document.getElementById( "top3" ).innerHTML = top3Html;
 
-        // Buscar tu posición
+        // 3. Buscar la posición global de DiLANZiTO
         let miIndex = jugadores.findIndex( p => p.name && p.name.toLowerCase() === NICKNAME.toLowerCase() );
         if ( miIndex !== -1 ) {
           let miP = jugadores[ miIndex ];
-          document.getElementById( "mystats" ).innerHTML = `<span>👤 #${ miIndex + 1 } ${ miP.name }</span> <span>${ miP.mushrooms_collected } setas</span>`;
+          let misSetas = miP.mushrooms_collected || 0;
+          document.getElementById( "mystats" ).innerHTML = `<span>👤 #${ miIndex + 1 } ${ miP.name }</span> <span>${ misSetas.toLocaleString() } setas</span>`;
         } else {
-          document.getElementById( "mystats" ).innerHTML = `<span>👤 ${ NICKNAME }</span> <span>No encontrado</span>`;
+          document.getElementById( "mystats" ).innerHTML = `<span>👤 ${ NICKNAME }</span> <span>Sin registros</span>`;
         }
       } catch ( e ) {
         console.log( "Error al sincronizar datos:", e );
       }
     }
 
+    // Ejecución inicial y temporizador cada 20 segundos
     actualizarDatos();
-    // Se actualiza automáticamente cada 20 segundos sin consumir recursos de tu PC
     setInterval( actualizarDatos, 20000 );
   </script>
 </body>
