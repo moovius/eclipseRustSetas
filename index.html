@@ -195,56 +195,19 @@
     const NICKNAME = "DiLANZiTO";
     const API_TARGET = "https://eclipse.latampowerrust.com/stats/data.php?server=1";
 
-    // Petición con límite de tiempo para no congelar la app
-    async function fetchConTimeout ( url, timeout = 5000 ) {
-      const controller = new AbortController();
-      const id = setTimeout( () => controller.abort(), timeout );
-      try {
-        const response = await fetch( url, { signal: controller.signal } );
-        clearTimeout( id );
-        return response;
-      } catch ( error ) {
-        clearTimeout( id );
-        throw error;
-      }
-    }
-
-    async function obtenerDatosAPI () {
-      const urlConCache = API_TARGET + "&_=" + new Date().getTime();
-      const encodedUrl = encodeURIComponent( urlConCache );
-
-      // Intento 1: AllOrigins
-      try {
-        let res = await fetchConTimeout( `https://api.allorigins.win/get?url=${ encodedUrl }` );
-        if ( res.ok ) {
-          let json = await res.json();
-          if ( json.contents ) return JSON.parse( json.contents );
-        }
-      } catch ( e ) {
-        console.warn( "AllOrigins dio error 522 o timeout, probando con el proxy secundario..." );
-      }
-
-      // Intento 2: Corsproxy.io (Respaldo directo)
-      try {
-        let res = await fetchConTimeout( `https://corsproxy.io/?${ encodedUrl }` );
-        if ( res.ok ) {
-          return await res.json();
-        }
-      } catch ( e ) {
-        console.warn( "El proxy secundario también falló." );
-      }
-
-      throw new Error( "Servidor de Rust no disponible temporalmente" );
-    }
-
     async function actualizarDatos () {
       try {
-        let data = await obtenerDatosAPI();
+        const urlConCache = API_TARGET + "&_=" + new Date().getTime();
+        const proxyUrl = `https://api.allorigins.win/get?url=${ encodeURIComponent( urlConCache ) }`;
+
+        let response = await fetch( proxyUrl );
+        if ( !response.ok ) throw new Error( "Error en la respuesta del proxy" );
+
+        let result = await response.json();
+        let data = JSON.parse( result.contents );
         let jugadores = Array.isArray( data ) ? data : ( data.data || data.players || [] );
 
-        if ( jugadores.length === 0 ) return;
-
-        // Ordenar por setas
+        // Ordenar jugadores por mushrooms_collected
         jugadores.sort( ( a, b ) => ( parseInt( b.mushrooms_collected ) || 0 ) - ( parseInt( a.mushrooms_collected ) || 0 ) );
 
         // Renderizar Top 3
@@ -257,39 +220,45 @@
           let setas = parseInt( p.mushrooms_collected ) || 0;
 
           top3Html += `
-                <div class="player-row">
-                    <div class="player-info">
-                        <span class="rank ${ rankClasses[ i ] }">${ medallas[ i ] }</span>
-                        <span>${ p.name }</span>
-                    </div>
-                    <div class="score">${ setas.toLocaleString() }</div>
-                </div>
-            `;
+                        <div class="player-row">
+                            <div class="player-info">
+                                <span class="rank ${ rankClasses[ i ] }">${ medallas[ i ] }</span>
+                                <span>${ p.name }</span>
+                            </div>
+                            <div class="score">${ setas.toLocaleString() }</div>
+                        </div>
+                    `;
         }
         document.getElementById( "top3" ).innerHTML = top3Html;
 
-        // Buscar tu posición
+        // Buscar la posición global de DiLANZiTO
         let miIndex = jugadores.findIndex( p => p.name && p.name.toLowerCase() === NICKNAME.toLowerCase() );
         if ( miIndex !== -1 ) {
           let miP = jugadores[ miIndex ];
           let misSetas = parseInt( miP.mushrooms_collected ) || 0;
 
           document.getElementById( "mystats" ).innerHTML = `
-                <div class="player-info">
-                    <span class="rank" style="color: #00f5d4;">#${ miIndex + 1 }</span>
-                    <span class="player-name">${ miP.name }</span>
-                </div>
-                <div class="score">${ misSetas.toLocaleString() } setas</div>
-            `;
+                        <div class="player-info">
+                            <span class="rank" style="color: #00f5d4;">#${ miIndex + 1 }</span>
+                            <span class="player-name">${ miP.name }</span>
+                        </div>
+                        <div class="score">${ misSetas.toLocaleString() } setas</div>
+                    `;
+        } else {
+          document.getElementById( "mystats" ).innerHTML = `
+                        <div class="player-info">
+                            <span class="rank" style="color: #00f5d4;">#-</span>
+                            <span class="player-name">${ NICKNAME }</span>
+                        </div>
+                        <div class="score">Sin registros</div>
+                    `;
         }
       } catch ( e ) {
-        // En lugar de limpiar la pantalla, se conserva lo último que se leyó con éxito
-        console.log( "No se pudo refrescar en esta iteración. Reintentando en el próximo ciclo." );
+        console.log( "Error al sincronizar datos:", e );
       }
     }
 
     actualizarDatos();
-    // Actualiza cada 30 segundos
     setInterval( actualizarDatos, 30000 );
   </script>
 </body>
